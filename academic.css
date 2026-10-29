@@ -1,0 +1,396 @@
+/* ==========================================================================
+   学术文档版面（A4 打印）
+   --------------------------------------------------------------------------
+   设计基准：high-end-visual-design skill 的排版原则
+     —— 字体质量、留白节奏、层级对比
+   但不采用其网页化元素（阴影、渐变、动画、悬浮效果）。
+   学术文档的第一要求是「印出来能读」，第二是「看起来可信」。
+
+   适配对象：pandoc/Chrome 打印、A4 210×297mm、双面装订
+   ========================================================================== */
+
+@page {
+  size: A4;
+  margin: 25mm 22mm 22mm 22mm;
+
+  @bottom-center {
+    content: counter(page);
+    font-family: "Charter", "Georgia", "Songti SC", serif;
+    font-size: 9pt;
+    color: #666;
+  }
+}
+
+/* --- 基础 --- */
+
+:root {
+  --ink: #1a1a1a;
+  --ink-light: #4a4a4a;
+  --ink-faint: #767676;
+  --rule: #d4d0c8;
+  --rule-strong: #1a1a1a;
+  --paper: #ffffff;
+  --accent: #7a3b2e;
+  --code-bg: #f5f3ef;
+}
+
+* { box-sizing: border-box; }
+
+html {
+  font-size: 10.5pt;
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: "Charter", "Georgia", "Songti SC", "Noto Serif CJK SC", serif;
+  color: var(--ink);
+  background: var(--paper);
+  line-height: 1.72;
+  margin: 0;
+  padding: 0;
+  text-align: justify;
+  hyphens: auto;
+  counter-reset: h1 h2;
+}
+
+/* --- 标题层级 --- */
+
+h1, h2, h3, h4 {
+  font-family: "Charter", "Georgia", "Songti SC", serif;
+  font-weight: 600;
+  color: var(--ink);
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+h1 {
+  font-size: 17pt;
+  line-height: 1.3;
+  margin: 0 0 6mm 0;
+  padding-bottom: 3mm;
+  border-bottom: 1.2pt solid var(--rule-strong);
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 13pt;
+  margin: 9mm 0 3.5mm 0;
+  letter-spacing: -0.005em;
+}
+
+h3 {
+  font-size: 11pt;
+  margin: 6mm 0 2.5mm 0;
+  color: var(--ink-light);
+}
+
+h4 {
+  font-size: 10.5pt;
+  margin: 4mm 0 2mm 0;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+
+/* --- 正文 --- */
+
+p {
+  margin: 0 0 3.2mm 0;
+  orphans: 2;
+  widows: 2;
+}
+
+strong {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+em {
+  font-style: italic;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 0.4pt dotted var(--accent);
+}
+
+/* --- 列表 --- */
+
+ul, ol {
+  margin: 0 0 3.2mm 0;
+  padding-left: 6mm;
+}
+
+li {
+  margin-bottom: 1.4mm;
+}
+
+li > ul, li > ol {
+  margin-top: 1.4mm;
+  margin-bottom: 1.4mm;
+}
+
+/* --- 表格 --- */
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 4mm 0 5mm 0;
+  font-size: 9.2pt;
+  line-height: 1.45;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+thead {
+  border-top: 1.2pt solid var(--rule-strong);
+  border-bottom: 0.8pt solid var(--rule-strong);
+}
+
+th {
+  text-align: left;
+  padding: 2mm 1.6mm;
+  font-weight: 600;
+  vertical-align: bottom;
+}
+
+td {
+  padding: 1.8mm 1.6mm;
+  border-bottom: 0.4pt solid var(--rule);
+  vertical-align: top;
+}
+
+tbody tr:last-child td {
+  border-bottom: 1.2pt solid var(--rule-strong);
+}
+
+/* 数字列右对齐（配合 .num 类使用）*/
+td.num, th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- 引用块 --- */
+
+blockquote {
+  margin: 4mm 0;
+  padding: 0 0 0 5mm;
+  border-left: 2pt solid var(--rule);
+  color: var(--ink-light);
+  font-style: normal;
+}
+
+blockquote p:last-child {
+  margin-bottom: 0;
+}
+
+/* --- 代码 --- */
+
+code {
+  font-family: "SF Mono", "Menlo", "Consolas", monospace;
+  font-size: 8.8pt;
+  background: var(--code-bg);
+  padding: 0.3mm 1mm;
+  border-radius: 1pt;
+}
+
+pre {
+  background: var(--code-bg);
+  padding: 3mm 4mm;
+  margin: 3.5mm 0;
+  font-size: 8.6pt;
+  line-height: 1.5;
+  overflow-x: auto;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  border-left: 2pt solid var(--rule);
+}
+
+pre code {
+  background: none;
+  padding: 0;
+  font-size: inherit;
+}
+
+/* --- 水平线 --- */
+
+hr {
+  border: none;
+  border-top: 0.5pt solid var(--rule);
+  margin: 6mm 0;
+}
+
+/* --- 封面 --- */
+
+.cover {
+  page-break-after: always;
+  break-after: page;
+  height: 247mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.cover-top {
+  padding-top: 30mm;
+}
+
+.cover-kicker {
+  font-size: 9pt;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 8mm;
+  font-family: "Charter", "Georgia", serif;
+}
+
+.cover-title {
+  font-size: 30pt;
+  line-height: 1.18;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  margin: 0 0 6mm 0;
+  border: none;
+  padding: 0;
+}
+
+.cover-sub {
+  font-size: 12pt;
+  color: var(--ink-light);
+  line-height: 1.6;
+  max-width: 120mm;
+  margin: 0;
+}
+
+.cover-meta {
+  border-top: 0.8pt solid var(--rule);
+  padding-top: 4mm;
+  font-size: 8.8pt;
+  color: var(--ink-faint);
+  line-height: 1.9;
+}
+
+.cover-meta dl {
+  display: grid;
+  grid-template-columns: 28mm 1fr;
+  gap: 1mm 4mm;
+  margin: 0;
+}
+
+.cover-meta dt {
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 8pt;
+}
+
+.cover-meta dd {
+  margin: 0;
+  color: var(--ink-light);
+}
+
+/* --- 摘要 / 提示框 --- */
+
+.abstract {
+  background: #faf9f6;
+  border-top: 1.2pt solid var(--rule-strong);
+  border-bottom: 0.5pt solid var(--rule);
+  padding: 5mm 6mm;
+  margin: 0 0 8mm 0;
+  font-size: 10pt;
+  line-height: 1.68;
+}
+
+.abstract h2 {
+  margin-top: 0;
+  font-size: 9pt;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.note {
+  border-left: 2pt solid var(--accent);
+  background: #fdfbf8;
+  padding: 3.5mm 5mm;
+  margin: 4mm 0;
+  font-size: 9.6pt;
+  color: var(--ink-light);
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.note-title {
+  font-weight: 600;
+  color: var(--ink);
+  display: block;
+  margin-bottom: 1.5mm;
+  font-size: 9pt;
+  letter-spacing: 0.04em;
+}
+
+/* --- 分页控制 --- */
+
+.page-break {
+  page-break-before: always;
+  break-before: page;
+}
+
+.avoid-break {
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+/* --- 目录 --- */
+
+.toc {
+  page-break-after: always;
+  break-after: page;
+}
+
+.toc h2 {
+  font-size: 9pt;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  border-bottom: 0.8pt solid var(--rule);
+  padding-bottom: 2mm;
+  margin-bottom: 4mm;
+}
+
+.toc ol {
+  list-style: none;
+  padding: 0;
+  counter-reset: toc;
+}
+
+.toc > ol > li {
+  counter-increment: toc;
+  margin-bottom: 2.4mm;
+  font-size: 10pt;
+}
+
+.toc > ol > li::before {
+  content: counter(toc) ". ";
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- 印前微调 --- */
+
+@media print {
+  body {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  a {
+    color: var(--ink);
+    border-bottom: none;
+  }
+
+  /* 避免标题孤行 */
+  h1, h2, h3, h4 {
+    page-break-after: avoid;
+    break-after: avoid-page;
+  }
+}

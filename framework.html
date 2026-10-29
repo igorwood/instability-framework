@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>国家不稳定性分析框架</title>
+<link rel="stylesheet" href="academic.css">
+</head>
+<body>
+
+<!-- ============ 封面 ============ -->
+<section class="cover">
+  <div class="cover-top">
+    <div class="cover-kicker">Research Framework · Version 2</div>
+    <h1 class="cover-title">国家不稳定性<br>分析框架</h1>
+    <p class="cover-sub">一套用于评估任意国家社会稳定性的五层门控方法，基于多轮实证检验与自动化测试。</p>
+  </div>
+  <div class="cover-meta">
+    <dl>
+      <dt>版本</dt><dd>2.0</dd>
+      <dt>适用范围</dt><dd>任意主权国家</dd>
+      <dt>数据基础</dt><dd>World Bank · IMF · FRED · Eurostat · NAVCO</dd>
+      <dt>验证状态</dt><dd>多国面板 · 跨国对比 · 单国深访 · 全样本覆盖检验</dd>
+      <dt>文档性质</dt><dd>方法论框架，非操作手册</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ============ 目录 ============ -->
+<section class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li>框架解决什么问题</li>
+    <li>L0 — 可测性前置判断</li>
+    <li>L1 — 结构路径分类</li>
+    <li>L2 — 动态变化分析</li>
+    <li>L3 — 因果识别</li>
+    <li>L4 — 结论形态</li>
+    <li>指标体系与信度分级</li>
+    <li>数据源可得性</li>
+    <li>十条陷阱清单</li>
+    <li>完整工作流</li>
+    <li>框架的边界</li>
+  </ol>
+</section>
+
+<!-- ============ 正文 ============ -->
+
+<h1>1. 框架解决什么问题</h1>
+
+<p>研究国家不稳定性最容易犯的错误，是直接跳到指标与模型。本项目用多年研究、两轮设计和数百项自动化测试换来的教训是：</p>
+
+<div class="note">
+  <span class="note-title">核心命题</span>
+  在问「哪个指标能预测不稳定」之前，必须先问「这个国家的不稳定能不能被观测」。
+</div>
+
+<p>所以框架是<strong>五层的</strong>，而且层与层之间是<strong>门控关系</strong>——前一层不过，后面做了也是白做。</p>
+
+<table>
+  <thead>
+    <tr><th style="width:22%">层级</th><th style="width:38%">问题</th><th>不通过时的后果</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>L0 可测性</strong></td><td>这个国家的不稳定能被看见吗</td><td>后面全部无效，且会得出反向结论</td></tr>
+    <tr><td><strong>L1 结构条件</strong></td><td>它处在哪种失稳路径上</td><td>用错路径会误判风险方向</td></tr>
+    <tr><td><strong>L2 动态变化</strong></td><td>它什么时候变得更不稳</td><td>混同「国家间差异」与「国内变化」</td></tr>
+    <tr><td><strong>L3 因果识别</strong></td><td>是什么导致的</td><td>相关当因果</td></tr>
+    <tr><td><strong>L4 结论形态</strong></td><td>能说到什么程度</td><td>过度承诺</td></tr>
+  </tbody>
+</table>
+
+<h1 class="page-break">2. L0 — 可测性前置判断</h1>
+
+<h2>2.1 为什么必须先做</h2>
+
+<p>初期的核心教训：<strong>事件计数与观测覆盖率高度相关（回归 R²≈0.36，r≈0.60）。</strong></p>
+
+<p>也就是说，「抗议变多了」可能只是「报道变多了」。不先处理这一点，后面所有模型都在拟合记录过程，不是社会过程。</p>
+
+<p>该阶段的模型最终被置换检验自行揭穿：真实 AUC≈0.72，而特征置换后的 AUC≈0.72（约 49% 分位）——<strong>模型的预测力全部来自事件自身的自相关，宏观特征零贡献。</strong></p>
+
+<h2>2.2 三项检查</h2>
+
+<table>
+  <thead>
+    <tr><th style="width:18%">检查</th><th style="width:34%">方法</th><th>不通过的判据</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>表达空间</strong></td><td>WGI <code>GOV_WGI_VA.SC</code>（表达与问责）</td><td>低于 40 → 可见冲突被系统性抑制</td></tr>
+    <tr><td><strong>数据连续性</strong></td><td>关键指标是否有突然中断</td><td>任一核心指标在某月/年停更 → 标记制度性断裂</td></tr>
+    <tr><td><strong>报道覆盖率</strong></td><td>事件数 ÷ 覆盖率代理，看比值是否漂移</td><td>相关性 &gt; 0.5 → 计数不可直接使用</td></tr>
+  </tbody>
+</table>
+
+<h2>2.3 判定的典型形态</h2>
+
+<p>在实测样本中，表达空间与制度质量的组合呈现四种典型形态（下表为分布描述，不含具体国别数据）：</p>
+
+<table>
+  <thead>
+    <tr><th style="width:26%">表达空间区间</th><th style="width:30%">典型判定</th><th>处理方式</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>≥ 70</td><td>可测，效度高</td><td>直接进入 L1</td></tr>
+    <tr><td>50 – 70</td><td>可测，需关注趋势</td><td>记录十年趋势，警惕持续下滑</td></tr>
+    <tr><td>40 – 50</td><td>可测但接近警戒线</td><td>L0 只过「两项半」，结论需加保留</td></tr>
+    <tr><td><strong>&lt; 40</strong></td><td><strong>不可测</strong></td><td>判 C，或按 §2.4 的例外条件重判</td></tr>
+  </tbody>
+</table>
+
+<p><strong>「不可测」不是「不研究」，而是「结论形态受限」</strong>（见 L4）。</p>
+
+<h2>2.4 一个反直觉的实证</h2>
+
+<p>在实测中曾观察到：某国的生产价格指数在某个特定月份起停止更新，而该月恰好对应一次重大的地缘政治断裂。</p>
+
+<p><strong>数据中断的时点本身就是信息</strong>：当某项统计在特定月份突然停更，那个月份往往标记着制度性断裂。这一观察促使框架把「数据连续性」列为 L0 的独立检查项。</p>
+
+<div class="note">
+  <span class="note-title">重要修正</span>
+  本框架早期版本曾断言「压制型国家的运动不可见，不会进入样本」。后续用全样本数据集检验推翻了这一点：<strong>低表达空间的国家同样出现在样本中</strong>。准确说法是：它们在样本中有记录，但数量与类型可能系统性偏少——这是量的偏差，不是存在与否的偏差。
+</div>
+
+<h1 class="page-break">3. L1 — 结构路径分类</h1>
+
+<p>通过 L0 后，判断该国处在哪条路径上。<strong>不同路径的「不稳定」含义完全不同，用同一套指标横跨比较是方法错误。</strong></p>
+
+<h2>3.1 四条路径（原三条 + 新增一类）</h2>
+
+<table>
+  <thead>
+    <tr><th style="width:16%">路径</th><th style="width:26%">特征</th><th style="width:30%">机制</th><th>判定信号</th></tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><strong>表达型</strong></td>
+      <td>可见、渐进、可控</td>
+      <td>压力 → 组织化 → 制度化表达 → 政策调整</td>
+      <td>表达空间高 + 制度容量高</td>
+    </tr>
+    <tr>
+      <td><strong>容量不足型</strong></td>
+      <td>可见、慢性难收敛</td>
+      <td>诉求表达 → 国家无力回应 → 对抗升级</td>
+      <td>表达空间中 + 制度容量低</td>
+    </tr>
+    <tr>
+      <td><strong>压制型</strong></td>
+      <td>不可见、突变</td>
+      <td>压力 → 表达受阻 → 积累 → 触发事件 → 快速扩散</td>
+      <td>表达空间低 + 制度质量中等</td>
+    </tr>
+    <tr>
+      <td><strong>高质量低参与型</strong></td>
+      <td>可见但受控、高度稳定</td>
+      <td>高质量制度吸收诉求，参与渠道有限但畅通</td>
+      <td>表达空间中 + 制度质量极高</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>3.2 为什么新增第四类</h2>
+
+<p>跨国对比发现了一个框架原先无法归类的情况：两个国家可以拥有相近（甚至更低）的表达空间，但秩序的来源完全不同。</p>
+
+<table>
+  <thead>
+    <tr><th>维度</th><th>类型甲</th><th>类型乙</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>表达空间</td><td>中等</td><td><strong>很低</strong></td></tr>
+    <tr><td>政府效能</td><td><strong>极高</strong></td><td>中等</td></tr>
+    <tr><td>法治</td><td><strong>极高</strong></td><td>中等</td></tr>
+    <tr><td>控制腐败</td><td><strong>极高</strong></td><td>中低</td></tr>
+    <tr><td>维持秩序的主要来源</td><td><strong>制度质量</strong></td><td><strong>强制力</strong></td></tr>
+    <tr><td>稳定的性质</td><td>内生</td><td>部分来自压制</td></tr>
+  </tbody>
+</table>
+
+<p><strong>类型甲</strong>的限制由高质量制度支撑——高薪养廉、强法治、高生活水平。<strong>类型乙</strong>的限制由强制力支撑——制度质量不足以自我支撑。</p>
+
+<div class="note">
+  <span class="note-title">对 L0 的修正</span>
+  不能只看表达空间单维。如果表达空间 &lt; 40 但政府效能 &gt; 80，不应直接判 C——因为高效能意味着秩序有其他来源。判定应改为「表达空间 × 制度质量」的二维判断。
+</div>
+
+<h2>3.3 路径判断的两个反直觉事实</h2>
+
+<p><strong>事实一：低失业可能是压制的结果。</strong> 在实测样本中出现过「失业率最低但政治稳定评分也最低」的组合。动员型经济会吸收劳动力，低失业不代表社会满意。</p>
+
+<p><strong>事实二：高债务集中在高容量国家。</strong> 债务水平与稳定度在横截面上呈正相关，因为高债务国多为制度容量高的发达经济体；而债务最低的国家未必最稳定。<strong>债务是存量，不是压力</strong>——存在债务率超过 250% 而社会高度稳定的案例。</p>
+
+<h1 class="page-break">4. L2 — 动态变化分析</h1>
+
+<h2>4.1 为什么必须分层</h2>
+
+<p>同一个指标在两个层次上的结论可能完全相反。多国面板的实测结果：</p>
+
+<table>
+  <thead>
+    <tr><th>指标</th><th class="num">混合相关（跨国）</th><th class="num">国家内相关（去均值）</th><th>解读</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>人均 GDP</td><td class="num"><strong>+0.60</strong></td><td class="num"><strong>−0.55</strong></td><td>富国更稳，但增长期反而更不稳</td></tr>
+    <tr><td>进口占 GDP</td><td class="num">+0.64</td><td class="num"><strong>+0.00</strong></td><td>全是国家间差异</td></tr>
+    <tr><td>政府债务</td><td class="num">+0.37</td><td class="num"><strong>−0.03</strong></td><td>同上</td></tr>
+    <tr><td>失业率</td><td class="num">−0.24</td><td class="num"><strong>+0.11</strong></td><td>方向翻转</td></tr>
+  </tbody>
+</table>
+
+<p><strong>混合相关大半是国家间差异的产物。</strong> 只做跨国回归的报告会把进口、债务全列为「显著因素」，而它们对预测「某国明年会不会更不稳」毫无用处。</p>
+
+<h2>4.2 唯一跨层稳健的指标：通胀</h2>
+
+<table>
+  <thead>
+    <tr><th>层次</th><th class="num">相关系数</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>混合（多国面板）</td><td class="num">−0.55</td></tr>
+    <tr><td>国家内去均值</td><td class="num">−0.38</td></tr>
+    <tr><td>分国方向</td><td>样本中多数国家为负，仅个别例外</td></tr>
+  </tbody>
+</table>
+
+<p><strong>这是唯一在跨国与国内两个层次都保持负相关的指标。</strong> 含义直接：同一国家通胀上升时，稳定评分确实下降。</p>
+
+<h2>4.3 托克维尔效应</h2>
+
+<p>人均 GDP 的符号反转不是均匀的——它按发展水平分组后呈现系统性差异：</p>
+
+<table>
+  <thead>
+    <tr><th style="width:40%">国家组</th><th class="num">国内 r</th><th>形态</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>发达民主国家组</td><td class="num">负（−0.4 至 −0.9）</td><td>增长时稳定下降</td></tr>
+    <tr><td>新兴 / 非民主国家组</td><td class="num">正（+0.3 至 +0.8）</td><td>增长时稳定上升</td></tr>
+  </tbody>
+</table>
+
+<p>前一组符合<strong>托克维尔效应</strong>：经济改善期，期望上升快于实际改善，相对剥夺感反而增强。</p>
+
+<p><strong>同一经济变量的政治含义，取决于该国处在什么发展阶段。</strong></p>
+
+<h2>4.4 最硬的一条</h2>
+
+<div class="note">
+  <span class="note-title">结论</span>
+  没有任何经济指标在所有国家内部呈现一致方向。不存在「失业率上升 X% 就导致不稳定」这种普适规律。这解释了为何纯粹的时间序列预测路径会失败：它假设了一个跨时空稳定的关系，而该关系并不存在。
+</div>
+
+<h1 class="page-break">5. L3 — 因果识别</h1>
+
+<h2>5.1 预测 ≠ 识别</h2>
+
+<p>预测型研究的失败原因，是宏观特征对事件无增量信息，模型捕捉的是自相关。</p>
+
+<p><strong>关键区分：</strong></p>
+
+<ul>
+  <li>预测是<strong>降低了不确定性</strong>（哪怕来自自相关）</li>
+  <li>识别是<strong>归因</strong>（改变 X 会让 Y 变多少）</li>
+</ul>
+
+<p>AUC 高不代表理解，只代表能排序。</p>
+
+<h2>5.2 识别设计：DID + 外生冲击</h2>
+
+<table>
+  <thead>
+    <tr><th style="width:22%">要素</th><th>设计</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>问题</td><td>从「何时发生」改为「是否导致」</td></tr>
+    <tr><td>方法</td><td>双重差分（DID）+ 双向固定效应</td></tr>
+    <tr><td>处理变量</td><td>外生冲击（自然灾害）</td></tr>
+    <tr><td>结果变量</td><td>三类政治层（抗议/骚乱/镇压）+ 暴力犯罪（秩序层）</td></tr>
+    <tr><td>关键</td><td>双向固定效应吸收全国共同趋势——那是自相关所在，是设计消掉而非回避</td></tr>
+  </tbody>
+</table>
+
+<h2>5.3 识别的四项前提</h2>
+
+<table>
+  <thead>
+    <tr><th style="width:20%">条件</th><th>检查方法</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>平行趋势</td><td>冲击前处理组与控制组趋势一致</td></tr>
+    <tr><td>无预期效应</td><td>冲击不可预测（天灾满足，政策不满足）</td></tr>
+    <tr><td>无溢出</td><td>控制组不受处理组影响（地理隔离）</td></tr>
+    <tr><td>排他性</td><td>冲击只通过预期通道影响结果</td></tr>
+  </tbody>
+</table>
+
+<p><strong>任一条不通过，DID 结果不可用。</strong></p>
+
+<h1 class="page-break">6. L4 — 结论形态</h1>
+
+<h2>6.1 五种形态</h2>
+
+<table>
+  <thead>
+    <tr><th style="width:18%">形态</th><th style="width:32%">含义</th><th>触发条件</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>A 完整</strong></td><td>能测水平 + 能测时点</td><td>L0 通过 + L3 通过</td></tr>
+    <tr><td><strong>B 仅水平</strong></td><td>能测水平，不能测时点</td><td>L0 通过 + L3 不通过</td></tr>
+    <tr><td><strong>C 事件不可观测</strong></td><td>连水平都测不到</td><td>L0 不通过（表达空间低）</td></tr>
+    <tr><td><strong>D 数据不足</strong></td><td>拿不到数据</td><td>数据源不可用</td></tr>
+    <tr><td><strong>E 无信号</strong></td><td>数据充分但无关系</td><td>L2 显示无稳定关系</td></tr>
+  </tbody>
+</table>
+
+<h2>6.2 为什么形态必须分这么细</h2>
+
+<p>因为「不可判定」≠「未检验」≠「否证」。混同会夸大否定范围。</p>
+
+<p>举例：某轮研究中，若干假设因数据缺失而<strong>不可判定</strong>，另一些因研究者未做而<strong>未检验</strong>。它们既没有支持核心主张，也没有反驳它。把它们都写成「未获支持」，会掩盖真实情况。</p>
+
+<h1 class="page-break">7. 指标体系与信度分级</h1>
+
+<table>
+  <thead>
+    <tr><th style="width:22%">级别</th><th style="width:34%">指标</th><th>依据</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>A（跨层稳健）</strong></td><td>CPI / 通胀率</td><td>混合与国内相关同向，多数国家一致</td></tr>
+    <tr><td><strong>B（仅跨国有效）</strong></td><td>进口、出口、贸易占 GDP、债务</td><td>国内相关接近零</td></tr>
+    <tr><td><strong>B（方向依国情）</strong></td><td>人均 GDP</td><td>发达国负、新兴国正</td></tr>
+    <tr><td><strong>C（弱或不稳）</strong></td><td>失业率、基尼、股指波动</td><td>相关弱或方向乱</td></tr>
+    <tr><td><strong>元层（不作信号）</strong></td><td>表达空间、观测覆盖率</td><td>只作分母与交互项</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <span class="note-title">元层的特殊性</span>
+  表达空间与观测覆盖率<strong>不是稳定性指标</strong>，而是<strong>测量条件</strong>。它们决定「其他指标是否可信」，本身不提供信号。这一点需要在代码层用断言锁死，防止后续分析误用。
+</div>
+
+<h1>8. 数据源可得性</h1>
+
+<p>实测结论（不列具体国别）：</p>
+
+<table>
+  <thead>
+    <tr><th style="width:16%">类别</th><th style="width:24%">源</th><th style="width:20%">覆盖</th><th>备注</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>国际统计</td><td>World Bank</td><td>接近全覆盖</td><td>唯一可横向比较</td></tr>
+    <tr><td>金融市场</td><td>Yahoo Finance</td><td>汇率全覆盖、股指多数</td><td>个别市场序列被下架</td></tr>
+    <tr><td>生产价格</td><td>FRED + Eurostat</td><td>约 2/3</td><td>部分大型经济体缺失</td></tr>
+    <tr><td>债务</td><td>IMF Datamapper</td><td>全覆盖</td><td>优于 World Bank 同名指标</td></tr>
+    <tr><td>新闻事件</td><td>GDELT / ACLED</td><td><strong>实测为 0</strong></td><td>限流 / 需 key</td></tr>
+    <tr><td>各国统计</td><td>各机构</td><td>约半数</td><td>部分站点直接不可达</td></tr>
+  </tbody>
+</table>
+
+<p><strong>新闻事件层的完全缺失，是本框架最大的约束</strong>——所有事件级分析都做不了。</p>
+
+<h1>9. 十条陷阱清单</h1>
+
+<p>来自本项目实践，按严重程度排序：</p>
+
+<ol>
+  <li><strong>把「事件少」当「稳定」</strong>——这是最致命的。必须先做 L0。</li>
+  <li><strong>把混合相关当因果</strong>——进口占 GDP 的国内相关接近 0。</li>
+  <li><strong>跨政体类型比较事件计数</strong>——同样是集会，在不同制度下含义可能相反。</li>
+  <li><strong>从局部无推全局无</strong>——「在某份案例名单里没看到」不等于「在全样本里没有」。这曾是本框架的错误判断。</li>
+  <li><strong>忽略数据中断的时点</strong>——中断月份本身可能标记制度性断裂。</li>
+  <li><strong>把低失业当稳定</strong>——可能是强制动员。</li>
+  <li><strong>把债务存量当压力</strong>——需看债权结构与储备；存在高债务率但无净债务的经济体。</li>
+  <li><strong>用「未检验」冒充「否证」</strong>——会夸大否定范围。</li>
+  <li><strong>字段名当字段内容</strong>——NAVCO 的 <code>loc_iso</code> 是 COW 代码不是 ISO；World Bank indicator 接口不返回 <code>region</code>。</li>
+  <li><strong>HTTP 200 当下载完整</strong>——曾遇到 JSON 在数百 KB 处截断却返回 200。</li>
+</ol>
+
+<h1 class="page-break">10. 完整工作流</h1>
+
+<pre><code>输入：目标国家（1 或 N 个）
+
+L0 ── 表达空间 &lt; 40？ ──是──&gt; 判为「不可测」，结论形态 C，停止
+      │否
+      ├─ 数据是否连续？ ──否──&gt; 标记断裂点，缩小时间窗
+      │是
+      ├─ 事件数/覆盖率 相关 &gt; 0.5？ ──是──&gt; 计数不可直接使用，改用比率
+      │否
+      ↓
+L1 ── 判路径（表达型 / 容量不足型 / 压制型 / 高质量低参与型）
+      ├─ 表达空间 &lt; 40 但效能 &gt; 80？ ──是──&gt; 不判 C，考虑高质量低参与型
+      ↓
+L2 ── 混合 vs 国内分层计算
+      ├─ 有跨层同向指标？ ──否──&gt; 无稳定关系，形态 E
+      │是
+      ↓
+L3 ── 有外生冲击？ ──否──&gt; 停止在相关，形态 B
+      │是
+      ├─ 平行趋势通过？
+      ├─ 无预期效应？
+      ├─ 无溢出？
+      │全部通过
+      ↓
+L4 ── 形态 A：可下因果结论</code></pre>
+
+<h1>11. 框架的边界</h1>
+
+<table>
+  <thead>
+    <tr><th style="width:48%">能</th><th>不能</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>判断某国的稳定性是否可测</td><td>预测某国何时失稳</td></tr>
+    <tr><td>判断它处在哪条失稳路径</td><td>给出「不稳定指数」单一排序</td></tr>
+    <tr><td>筛出跨层稳健的指标（目前只有通胀）</td><td>确认任何指标的因果效应（除非 L3 全过）</td></tr>
+    <tr><td>识别数据缺口与测量偏差</td><td>替代事件级数据（新闻层缺失是硬约束）</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <span class="note-title">最要紧的一句</span>
+  在表达空间低的社会，稳定性本身不可测量。任何声称「这些国家更稳定」的结论，都必须先排除「观测通道被抑制」这一解释。
+</div>
+
+<div class="note">
+  <span class="note-title">边界声明</span>
+  本框架用于<strong>描述性风险因素分析</strong>——产出是风险地图，不是操作方案。前者可用于预警、资源配置、政策评估；后者涉及介入他国政治，不在框架范围内。
+</div>
+
+</body>
+</html>

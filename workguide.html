@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>国家不稳定性分析：工作指引</title>
+<link rel="stylesheet" href="academic.css">
+</head>
+<body>
+
+<!-- ============ 封面 ============ -->
+<section class="cover">
+  <div class="cover-top">
+    <div class="cover-kicker">Working Guide · Version 2</div>
+    <h1 class="cover-title">国家不稳定性分析<br>工作指引</h1>
+    <p class="cover-sub">按五层框架逐步执行的检查清单、数据接口与判定阈值。每一步都有明确的通过标准与失败处理。</p>
+  </div>
+  <div class="cover-meta">
+    <dl>
+      <dt>配套文档</dt><dd>《国家不稳定性分析框架》</dd>
+      <dt>适用对象</dt><dd>研究者、分析师、政策评估人员</dd>
+      <dt>预计工时</dt><dd>单国 2–4 小时（不含数据采集等待）</dd>
+      <dt>前置技能</dt><dd>基础统计、API 调用、Markdown</dd>
+      <dt>文档性质</dt><dd>操作指引，非结论模板</dd>
+    </dl>
+  </div>
+</section>
+
+<!-- ============ 目录 ============ -->
+<section class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li>准备工作</li>
+    <li>步骤一：L0 可测性检查</li>
+    <li>步骤二：L1 路径判定</li>
+    <li>步骤三：L2 动态分析</li>
+    <li>步骤四：L3 因果识别（可选）</li>
+    <li>步骤五：L4 结论撰写</li>
+    <li>常见错误与处理</li>
+    <li>产出物清单</li>
+    <li>质量检查清单</li>
+  </ol>
+</section>
+
+<!-- ============ 正文 ============ -->
+
+<h1>1. 准备工作</h1>
+
+<h2>1.1 需要采集的数据</h2>
+
+<table>
+  <thead>
+    <tr><th style="width:16%">层级</th><th style="width:32%">指标</th><th style="width:22%">World Bank 代码</th><th>用途</th></tr>
+  </thead>
+  <tbody>
+    <tr><td rowspan="3"><strong>L0</strong></td><td>表达与问责</td><td><code>GOV_WGI_VA.SC</code></td><td>可测性的主判据</td></tr>
+    <tr><td>事件计数（可选）</td><td>GDELT / ACLED</td><td>覆盖率漂移检验</td></tr>
+    <tr><td>覆盖率代理</td><td>信息业就业 / 报纸数</td><td>同上</td></tr>
+    <tr><td rowspan="5"><strong>L1</strong></td><td>政治稳定</td><td><code>GOV_WGI_PV.SC</code></td><td>结果变量</td></tr>
+    <tr><td>政府效能</td><td><code>GOV_WGI_GE.SC</code></td><td>制度容量的主判据</td></tr>
+    <tr><td>控制腐败</td><td><code>GOV_WGI_CC.SC</code></td><td>制度短板识别</td></tr>
+    <tr><td>法治</td><td><code>GOV_WGI_RL.SC</code></td><td>同上</td></tr>
+    <tr><td>监管质量</td><td><code>GOV_WGI_RQ.SC</code></td><td>技术能力与政治能力分离</td></tr>
+    <tr><td rowspan="6"><strong>L2</strong></td><td>失业率</td><td><code>SL.UEM.TOTL.ZS</code></td><td>经济压力</td></tr>
+    <tr><td>通胀率 / CPI 指数</td><td><code>FP.CPI.TOTL.ZG</code> / <code>FP.CPI.TOTL</code></td><td>唯一跨层稳健因素</td></tr>
+    <tr><td>人均 GDP (PPP)</td><td><code>NY.GDP.PCAP.PP.CD</code></td><td>发展水平</td></tr>
+    <tr><td>基尼系数</td><td><code>SI.POV.GINI</code></td><td>分配压力</td></tr>
+    <tr><td>贸易占 GDP</td><td><code>TG.VAL.TOTL.GD.ZS</code></td><td>外部依赖</td></tr>
+    <tr><td>政府债务</td><td>IMF <code>GGXWDG_NGDP</code></td><td>财政空间</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <span class="note-title">注意</span>
+  World Bank 的 WGI 旧代码 <code>VA.EST</code> / <code>GE.EST</code> / <code>CC.EST</code> 已失效，必须用 <code>GOV_WGI_*.SC</code> 新代码。债务指标不要用 World Bank 的 <code>GC.DOD.TOTL.GD.ZS</code>（覆盖国家极少且年份陈旧），改用 IMF Datamapper。
+</div>
+
+<h2>1.2 采集接口</h2>
+
+<pre><code># World Bank：单国多年
+https://api.worldbank.org/v2/country/{ISO3}/indicator/{CODE}
+  ?format=json&amp;date=2014:2024&amp;per_page=500
+
+# World Bank：多国横向
+https://api.worldbank.org/v2/country/A;B;C/indicator/{CODE}
+  ?format=json&amp;date=2014:2024&amp;per_page=500
+
+# IMF 债务（注意：路径里的国家过滤会被忽略，返回全球）
+https://www.imf.org/external/datamapper/api/v1/GGXWDG_NGDP
+  → 解析时按 iso3 自行筛选</code></pre>
+
+<h2>1.3 三条采集纪律</h2>
+
+<ol>
+  <li><strong>不要伪装 User-Agent 访问 FRED</strong>——手写 Chrome UA 会被限流挂起，默认 UA 反而返回 200。</li>
+  <li><strong>HTTP 200 不等于内容完整</strong>——实测中曾遇到 JSON 在数百 KB 处截断却返回 200，直到解析时才暴露。</li>
+  <li><strong>字段名不等于字段内容</strong>——NAVCO 的 <code>loc_iso</code> 实际是 COW 国家代码的浮点字符串；World Bank 的 indicator 接口不返回 <code>region</code>，需单独查 country 端点。</li>
+</ol>
+
+<h1 class="page-break">2. 步骤一：L0 可测性检查</h1>
+
+<h2>2.1 检查表达空间</h2>
+
+<p>取最近一年的 <code>GOV_WGI_VA.SC</code>。</p>
+
+<table>
+  <thead>
+    <tr><th style="width:20%">数值</th><th style="width:26%">判定</th><th>下一步</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>≥ 70</td><td>可测，效度高</td><td>继续 L1</td></tr>
+    <tr><td>40 – 70</td><td>可测，但需注意趋势</td><td>继续 L1，并记录十年趋势</td></tr>
+    <tr><td><strong>&lt; 40</strong></td><td><strong>不可测</strong></td><td>先看 2.3 的例外判定</td></tr>
+  </tbody>
+</table>
+
+<h2>2.2 检查数据连续性</h2>
+
+<p>对每个核心指标，检查是否有年份缺失或突然中断。</p>
+
+<p><strong>发现中断时</strong>：记录中断的<strong>具体月份</strong>。中断时点本身是信息——实测中曾观察到某国的生产价格指数在一个地缘政治断裂的月份同时停更。</p>
+
+<h2>2.3 表达空间 &lt; 40 时的例外判定</h2>
+
+<div class="note">
+  <span class="note-title">重要</span>
+  不要一看到表达空间 &lt; 40 就判 C。还要看政府效能：
+</div>
+
+<table>
+  <thead>
+    <tr><th style="width:34%">组合</th><th style="width:22%">判定</th><th>依据</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>表达 &lt; 40 <strong>且</strong> 效能 &gt; 80</td><td><strong>不判 C</strong></td><td>高效能意味着秩序有其他来源</td></tr>
+    <tr><td>表达 &lt; 40 且 效能 40–80</td><td>判 C</td><td>制度质量不足以自我支撑，稳定部分来自压制</td></tr>
+    <tr><td>表达 &lt; 40 且 效能 &lt; 40</td><td>判 C，且形态为 D 或 E</td><td>低能力 + 低表达，数据本身可能不可靠</td></tr>
+  </tbody>
+</table>
+
+<h2>2.4 覆盖率检验（有事件数据时）</h2>
+
+<p>计算事件计数与覆盖率代理的相关系数。</p>
+
+<ul>
+  <li>|r| &lt; 0.3：计数可近似当作信号</li>
+  <li>0.3 ≤ |r| ≤ 0.5：计数需作为协变量控制</li>
+  <li><strong>|r| &gt; 0.5：计数不可直接使用</strong>——改用「事件数 ÷ 覆盖率」的比率</li>
+</ul>
+
+<p>参考基准：实测中某联邦制大国的州级数据曾达到 r≈0.60、R²≈0.36。</p>
+
+<h2>2.5 本步产出</h2>
+
+<p>写下三行判定，缺一不可：</p>
+
+<pre><code>表达空间：{数值}（{年份}）→ {可测/不可测}
+数据连续性：{完整/中断于 YYYY-MM}
+覆盖率检验：{r 值} 或「无事件数据，未做」</code></pre>
+
+<h1 class="page-break">3. 步骤二：L1 路径判定</h1>
+
+<h2>3.1 取五个治理维度</h2>
+
+<p>计算各维度与表达空间的差值，找出<strong>最短板</strong>。</p>
+
+<table>
+  <thead>
+    <tr><th style="width:26%">差值模式</th><th style="width:26%">含义</th><th>路径倾向</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>五维齐平（差距 &lt; 10）</td><td>治理结构均衡</td><td>表达型 / 中间型</td></tr>
+    <tr><td>反腐显著偏低（差 &gt; 15）</td><td>能执行但缺监督</td><td><strong>容量不足型</strong></td></tr>
+    <tr><td>效能显著偏高（&gt; 80）</td><td>强行政、可参与度有限</td><td><strong>高质量低参与型</strong></td></tr>
+    <tr><td>全维中等（40–55）</td><td>制度质量不足</td><td><strong>压制型</strong></td></tr>
+  </tbody>
+</table>
+
+<h2>3.2 四类路径的判定式</h2>
+
+<pre><code>if 表达空间 &gt; 70 and 政府效能 &gt; 70:
+    路径 = 表达型
+elif 表达空间 &gt; 45 and 政府效能 &lt; 55:
+    路径 = 容量不足型
+elif 表达空间 &lt; 45 and 政府效能 &lt; 70:
+    路径 = 压制型
+elif 表达空间 &lt; 60 and 政府效能 &gt; 80:
+    路径 = 高质量低参与型
+else:
+    路径 = 中间型（需个案判断）</code></pre>
+
+<h2>3.3 必须记录的反例</h2>
+
+<p>判定路径时，主动检查两个反直觉情况：</p>
+
+<ol>
+  <li><strong>低失业 + 高通胀</strong> → 可能是战时动员型经济（实测中曾出现失业率最低、但 CPI 十年近乎翻倍的组合）</li>
+  <li><strong>高债务 + 低风险</strong> → 可能是本币债务或制度性储备（实测中曾出现债务率超过 160% 但实际无净债务的经济体）</li>
+</ol>
+
+<h1 class="page-break">4. 步骤三：L2 动态分析</h1>
+
+<h2>4.1 分层计算</h2>
+
+<p>对每个经济指标，算两个相关系数：</p>
+
+<table>
+  <thead>
+    <tr><th style="width:26%">层次</th><th style="width:34%">算法</th><th>含义</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>混合相关</td><td>直接算指标与政治稳定的 Pearson r</td><td>「哪些国家更不稳」</td></tr>
+    <tr><td><strong>国家内相关</strong></td><td>先减去各国均值，再算 r</td><td><strong>「一个国家何时变得更不稳」</strong></td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <span class="note-title">关键判断</span>
+  两个系数方向相反时，以<strong>国家内相关</strong>为准。混合相关大半是国家间差异的产物。
+</div>
+
+<h2>4.2 已知基准值（多国面板实测）</h2>
+
+<table>
+  <thead>
+    <tr><th>指标</th><th class="num">混合 r</th><th class="num">国内 r</th><th>结论</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>通胀率</td><td class="num">−0.55</td><td class="num"><strong>−0.38</strong></td><td>唯一跨层稳健</td></tr>
+    <tr><td>人均 GDP</td><td class="num">+0.60</td><td class="num">−0.55</td><td>符号反转（托克维尔效应）</td></tr>
+    <tr><td>进口占 GDP</td><td class="num">+0.64</td><td class="num">+0.00</td><td>纯国家间差异</td></tr>
+    <tr><td>失业率</td><td class="num">−0.24</td><td class="num">+0.11</td><td>方向翻转</td></tr>
+  </tbody>
+</table>
+
+<h2>4.3 趋势检查</h2>
+
+<p>对政治稳定与表达空间，必须画出十年逐年序列，不能只看首末两点。</p>
+
+<p><strong>需要特别注意的形态</strong>：</p>
+
+<ul>
+  <li><strong>单调下降</strong>：结构性退化（实测中曾见表达空间十年下降逾 10 分）</li>
+  <li><strong>回升后急跌</strong>：比单调下降更危险（先回升约 4 分，次年跌回并创新低）</li>
+  <li><strong>异常平坦</strong>：低表达空间下的测量稳定性，不是真实稳定（十余年波动不足 5 分）</li>
+</ul>
+
+<h1 class="page-break">5. 步骤四：L3 因果识别（可选）</h1>
+
+<div class="note">
+  <span class="note-title">何时可以跳过</span>
+  绝大多数分析做不到 L3。跳过时，<strong>结论形态固定为 B</strong>，且报告中必须明确写「这是相关，不是因果」。
+</div>
+
+<h2>5.1 识别设计的四个条件</h2>
+
+<table>
+  <thead>
+    <tr><th style="width:20%">条件</th><th style="width:36%">检验方法</th><th>不通过时</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>平行趋势</td><td>画处理组与控制组冲击前的序列</td><td>改用合成控制法</td></tr>
+    <tr><td>无预期效应</td><td>确认冲击不可预测</td><td>天灾可用，政策不可用</td></tr>
+    <tr><td>无溢出</td><td>检查地理/经济隔离</td><td>缩小控制组范围</td></tr>
+    <tr><td>排他性</td><td>论证冲击只通过一条通道</td><td>放弃因果结论</td></tr>
+  </tbody>
+</table>
+
+<h2>5.2 推荐的做法</h2>
+
+<p>本项目第二版设计：<strong>DID + 双向固定效应</strong>。</p>
+
+<p>关键点：双向固定效应吸收「全国共同趋势」——那正是纯预测路径失败的地方（预测力全部来自事件自相关）。<strong>这是设计消掉它，不是回避它。</strong></p>
+
+<h1 class="page-break">6. 步骤五：L4 结论撰写</h1>
+
+<h2>6.1 先定形态，再写结论</h2>
+
+<table>
+  <thead>
+    <tr><th style="width:12%">形态</th><th style="width:38%">允许的表述</th><th>禁止的表述</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>A</td><td>「X 导致 Y，效应量为 Z」</td><td>超出样本外推</td></tr>
+    <tr><td><strong>B</strong></td><td>「当前水平是 X，趋势是 Y」</td><td>「将在某年失稳」</td></tr>
+    <tr><td><strong>C</strong></td><td>「数据存在，但含义受限」</td><td>「该国更稳定」</td></tr>
+    <tr><td>D</td><td>「数据不足，无法判断」</td><td>任何数值结论</td></tr>
+    <tr><td>E</td><td>「未发现稳定关系」</td><td>「不存在关系」</td></tr>
+  </tbody>
+</table>
+
+<h2>6.2 三种结案类型必须分开写</h2>
+
+<table>
+  <thead>
+    <tr><th style="width:22%">类型</th><th style="width:34%">含义</th><th>写法</th></tr>
+  </thead>
+  <tbody>
+    <tr><td><strong>否证</strong></td><td>数据充分且关系不成立</td><td>「假设 X 被否证」</td></tr>
+    <tr><td><strong>不可判定</strong></td><td>数据或设计缺失，换人也做不了</td><td>「无法检验」</td></tr>
+    <tr><td><strong>未检验</strong></td><td>数据在，但本研究没做</td><td>「未做」</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <span class="note-title">常见错误</span>
+  把「不可判定」和「未检验」都写成「未获支持」——这会极大夸大否定范围，让读者以为整个方向都被否定了。
+</div>
+
+<h2>6.3 结论段的标准结构</h2>
+
+<ol>
+  <li><strong>形态声明</strong>：本分析达到形态 X</li>
+  <li><strong>可说的</strong>：当前水平、趋势、路径归属</li>
+  <li><strong>不可说的</strong>：明确列出不能下的判断</li>
+  <li><strong>最要紧的一条</strong>：一句话总结</li>
+</ol>
+
+<h1 class="page-break">7. 常见错误与处理</h1>
+
+<table>
+  <thead>
+    <tr><th style="width:32%">错误</th><th style="width:30%">症状</th><th>处理</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>把「事件少」当「稳定」</td><td>结论中出现「该国很稳定」而未经 L0</td><td>回到步骤一，检查表达空间</td></tr>
+    <tr><td>把混合相关当因果</td><td>引用跨国回归系数预测单国未来</td><td>补算国家内相关</td></tr>
+    <tr><td>跨政体比较事件计数</td><td>直接比较不同制度下的事件数量</td><td>构念不等价，改为定性比较</td></tr>
+    <tr><td>从局部无推全局无</td><td>「这份名单里没有」→「样本里没有」</td><td>核对完整数据集，而非子集</td></tr>
+    <tr><td>忽略数据中断</td><td>用了停更年份之后的数据</td><td>标记断裂点，缩小时间窗</td></tr>
+    <tr><td>把低失业当稳定</td><td>未检查是否为动员经济</td><td>并列看通胀与 FDI</td></tr>
+    <tr><td>把债务存量当压力</td><td>未区分本币债与外币债</td><td>检查债权人结构与储备</td></tr>
+    <tr><td>用「未检验」冒充「否证」</td><td>结案表全部标成「不支持」</td><td>按 6.2 三类分开</td></tr>
+  </tbody>
+</table>
+
+<h1>8. 产出物清单</h1>
+
+<table>
+  <thead>
+    <tr><th style="width:26%">产出</th><th style="width:26%">格式</th><th>内容要求</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>数据文件</td><td>DuckDB / CSV</td><td>长表：iso3, indicator, year, value, source</td></tr>
+    <tr><td>采集脚本</td><td>Python</td><td>可重跑，含重试与超时</td></tr>
+    <tr><td>分析报告</td><td>Markdown</td><td>按 L0–L4 分节，每节有明确判定</td></tr>
+    <tr><td>数字核对</td><td>脚本输出</td><td>报告中的每个数字可从数据库复算</td></tr>
+    <tr><td>局限声明</td><td>报告末节</td><td>至少含数据缺口、时点、因果限制</td></tr>
+  </tbody>
+</table>
+
+<h1 class="page-break">9. 质量检查清单</h1>
+
+<p>提交前逐项打勾。任一项不通过，退回相应步骤。</p>
+
+<table>
+  <thead>
+    <tr><th style="width:8%">□</th><th style="width:44%">检查项</th><th>依据</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>□</td><td>表达空间已记录，且判定与阈值一致</td><td>步骤 2.1</td></tr>
+    <tr><td>□</td><td>数据中断点已标注（若有）</td><td>步骤 2.2</td></tr>
+    <tr><td>□</td><td>路径判定有明确依据，不是印象</td><td>步骤 3.2</td></tr>
+    <tr><td>□</td><td>经济指标同时算了混合与国内相关</td><td>步骤 4.1</td></tr>
+    <tr><td>□</td><td>政治稳定画了逐年序列，不只看首末</td><td>步骤 4.3</td></tr>
+    <tr><td>□</td><td>结论形态已声明（A/B/C/D/E）</td><td>步骤 6.1</td></tr>
+    <tr><td>□</td><td>三种结案类型没有混用</td><td>步骤 6.2</td></tr>
+    <tr><td>□</td><td>报告中每个数字都能从数据库复算</td><td>产出物</td></tr>
+    <tr><td>□</td><td>局限声明含数据缺口、时点、因果限制</td><td>产出物</td></tr>
+    <tr><td>□</td><td>没有把「不可测」写成「更稳定」</td><td>框架 L4</td></tr>
+  </tbody>
+</table>
+
+<div class="note">
+  <span class="note-title">最后一条</span>
+  如果你的报告里出现「该国很稳定」这类判断，而前面没有 L0 的检查记录——<strong>删掉这个判断，回到步骤一</strong>。
+</div>
+
+</body>
+</html>
